@@ -1,5 +1,5 @@
 # MediaServer
-A simple Windows-based server for streaming local media to connected devices. Stream your personal media library to any compatible device in your network.
+A simple .NET-based server for streaming local media to connected devices. Stream your personal media library to any compatible device in your network.
 
 ## Configuration
 Enter the location of your media files in the MediaSettings section in appsettings.json:
