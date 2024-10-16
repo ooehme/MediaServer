@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "s8pLsgRpvLf0UO5CPFCTyuiNr3Hr1izBzAPjv/dQIZw=",
+  "Source": "MediaServer",
+  "BasePath": "_content/MediaServer",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
