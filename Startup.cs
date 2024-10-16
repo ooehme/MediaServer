@@ -1,7 +1,9 @@
 using System;
+using MediaServer.Data;
 using MediaServer.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,16 +23,23 @@ namespace MediaServer
         {
             services.AddControllers();
 
-            // Lese den Pfad zu den Mediadaten aus der Konfigurationsdatei
-            var mediaDirectory = Configuration.GetSection("MediaSettings:MediaDirectory").Value;
-
-            // Überprüfe, ob der Pfad nicht null ist
+            var mediaDirectory = Configuration["MediaSettings:MediaDirectory"];
             if (string.IsNullOrEmpty(mediaDirectory))
             {
-                throw new InvalidOperationException("Media directory path is not configured.");
+                throw new ArgumentException("Media directory path is not configured.");
             }
 
-            services.AddSingleton(new MediaService(mediaDirectory));
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddSingleton<MediaService>();
+            services.AddSingleton<IndexingService>();
+            services.AddHostedService(provider => provider.GetRequiredService<IndexingService>());
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Media Server API", Version = "v1" });
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -38,7 +47,11 @@ namespace MediaServer
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Media Server API v1"));
             }
+
+            //app.UseHttpsRedirection();
 
             app.UseRouting();
 

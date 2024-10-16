@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using MediaServer.Data;
 using MediaServer.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using TagLib;
 
 namespace MediaServer.Services
@@ -10,113 +14,165 @@ namespace MediaServer.Services
     public class MediaService
     {
         private readonly string _mediaDirectory;
-        private List<MediaFile> _mediaFiles;
-        private List<VideoFile> _videoFiles;
-
-        public MediaService(string mediaDirectory)
+    
+        public MediaService(IConfiguration configuration)
         {
-            _mediaDirectory = mediaDirectory;
-            _mediaFiles = new List<MediaFile>();
-            _videoFiles = new List<VideoFile>();
-            IndexMediaFiles();
-            IndexVideoFiles();
+            _mediaDirectory = configuration.GetSection("MediaSettings:MediaDirectory").Value;
+            if (string.IsNullOrEmpty(_mediaDirectory))
+            {
+                throw new InvalidOperationException("Media directory path is not configured.");
+            }
         }
 
-        private void IndexMediaFiles()
+        public async Task IndexMediaFilesAsync(AppDbContext dbContext)
         {
-            _mediaFiles.Clear();
             var files = Directory.GetFiles(_mediaDirectory, "*.*", SearchOption.AllDirectories)
                                  .Where(file => file.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
                                                 file.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
                                                 file.EndsWith(".flac", StringComparison.OrdinalIgnoreCase));
+
             foreach (var file in files)
             {
                 try
                 {
                     var tagFile = TagLib.File.Create(file);
-                    _mediaFiles.Add(new MediaFile
+                    var mediaFile = new MediaFile
                     {
                         Path = file,
                         Artist = tagFile.Tag.FirstPerformer ?? string.Empty,
                         Album = tagFile.Tag.Album ?? string.Empty,
-                        Title = tagFile.Tag.Title ?? string.Empty,
+                        Title = tagFile.Tag.Title ?? Path.GetFileNameWithoutExtension(file),
                         Genre = tagFile.Tag.FirstGenre ?? string.Empty,
                         Year = (int)tagFile.Tag.Year
-                    });
+                    };
+
+                    var existingFile = await dbContext.MediaFiles.FindAsync(file);
+                    if (existingFile == null)
+                    {
+                        dbContext.MediaFiles.Add(mediaFile);
+                    }
+                    else
+                    {
+                        dbContext.Entry(existingFile).CurrentValues.SetValues(mediaFile);
+                    }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error reading file {file}: {ex.Message}");
                 }
             }
+
+            await dbContext.SaveChangesAsync();
         }
 
-        private void IndexVideoFiles()
+        public async Task IndexVideoFilesAsync(AppDbContext dbContext)
         {
-            _videoFiles.Clear();
             var files = Directory.GetFiles(_mediaDirectory, "*.*", SearchOption.AllDirectories)
                                  .Where(file => file.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) ||
                                                 file.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ||
                                                 file.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase));
+
             foreach (var file in files)
             {
                 try
                 {
                     var tagFile = TagLib.File.Create(file);
-                    _videoFiles.Add(new VideoFile
+                    var videoFile = new VideoFile
                     {
                         Path = file,
-                        Title = tagFile.Tag.Title ?? string.Empty,
+                        Title = tagFile.Tag.Title ?? Path.GetFileNameWithoutExtension(file),
                         Director = tagFile.Tag.FirstPerformer ?? string.Empty,
                         Genre = tagFile.Tag.FirstGenre ?? string.Empty,
                         Year = (int)tagFile.Tag.Year
-                    });
+                    };
+
+                    var existingFile = await dbContext.VideoFiles.FindAsync(file);
+                    if (existingFile == null)
+                    {
+                        dbContext.VideoFiles.Add(videoFile);
+                    }
+                    else
+                    {
+                        dbContext.Entry(existingFile).CurrentValues.SetValues(videoFile);
+                    }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error reading file {file}: {ex.Message}");
                 }
             }
+
+            await dbContext.SaveChangesAsync();
         }
 
-        public List<MediaFile> GetMediaFiles()
+        public async Task<List<MediaFile>> GetMediaFilesAsync(AppDbContext dbContext)
         {
-            return _mediaFiles;
+            return await dbContext.MediaFiles.ToListAsync();
         }
 
-        public MediaFile? GetMediaFileByTitle(string title)
+        public async Task<MediaFile> GetMediaFileByTitleAsync(AppDbContext dbContext, string title)
         {
-            return _mediaFiles.FirstOrDefault(f => f.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+            return await dbContext.MediaFiles.FirstOrDefaultAsync(f => f.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
         }
 
-        public List<MediaFile> GetMediaFilesByArtist(string artist)
+        public async Task<List<MediaFile>> GetMediaFilesByArtistAsync(AppDbContext dbContext, string artist)
         {
-            return _mediaFiles.Where(f => f.Artist.Equals(artist, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await dbContext.MediaFiles
+                .Where(f => f.Artist.Equals(artist, StringComparison.OrdinalIgnoreCase))
+                .ToListAsync();
         }
 
-        public List<MediaFile> GetMediaFilesByAlbum(string album)
+        public async Task<List<MediaFile>> GetMediaFilesByAlbumAsync(AppDbContext dbContext, string album)
         {
-            return _mediaFiles.Where(f => f.Album.Equals(album, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await dbContext.MediaFiles
+                .Where(f => f.Album.Equals(album, StringComparison.OrdinalIgnoreCase))
+                .ToListAsync();
         }
 
-        public List<VideoFile> GetVideoFiles()
+        public async Task<List<VideoFile>> GetVideoFilesAsync(AppDbContext dbContext)
         {
-            return _videoFiles;
+            return await dbContext.VideoFiles.ToListAsync();
         }
 
-        public VideoFile? GetVideoFileByTitle(string title)
+        public async Task<VideoFile> GetVideoFileByTitleAsync(AppDbContext dbContext, string title)
         {
-            return _videoFiles.FirstOrDefault(f => f.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+            return await dbContext.VideoFiles.FirstOrDefaultAsync(f => f.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
         }
 
-        public List<VideoFile> GetVideoFilesByDirector(string director)
+        public async Task<List<VideoFile>> GetVideoFilesByDirectorAsync(AppDbContext dbContext, string director)
         {
-            return _videoFiles.Where(f => f.Director.Equals(director, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await dbContext.VideoFiles
+                .Where(f => f.Director.Equals(director, StringComparison.OrdinalIgnoreCase))
+                .ToListAsync();
         }
 
-        public List<VideoFile> GetVideoFilesByGenre(string genre)
+        public async Task<List<VideoFile>> GetVideoFilesByGenreAsync(AppDbContext dbContext, string genre)
         {
-            return _videoFiles.Where(f => f.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await dbContext.VideoFiles
+                .Where(f => f.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase))
+                .ToListAsync();
+        }
+
+        public async Task<FileStream> GetMediaFileStreamAsync(AppDbContext dbContext, string title)
+        {
+            var mediaFile = await GetMediaFileByTitleAsync(dbContext, title);
+            if (mediaFile == null)
+            {
+                return null;
+            }
+
+            return new FileStream(mediaFile.Path, FileMode.Open, FileAccess.Read);
+        }
+
+        public async Task<FileStream> GetVideoFileStreamAsync(AppDbContext dbContext, string title)
+        {
+            var videoFile = await GetVideoFileByTitleAsync(dbContext, title);
+            if (videoFile == null)
+            {
+                return null;
+            }
+
+            return new FileStream(videoFile.Path, FileMode.Open, FileAccess.Read);
         }
     }
 }

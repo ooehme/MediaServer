@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Threading.Tasks;
+using MediaServer.Data;
 using MediaServer.Models;
 using MediaServer.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaServer.Controllers
 {
@@ -11,72 +14,151 @@ namespace MediaServer.Controllers
     public class MediaController : ControllerBase
     {
         private readonly MediaService _mediaService;
+        private readonly IndexingService _indexingService;
+        private readonly AppDbContext _dbContext;
 
-        public MediaController(MediaService mediaService)
+        public MediaController(MediaService mediaService, IndexingService indexingService, AppDbContext dbContext)
         {
-            _mediaService = mediaService;
+            _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
+            _indexingService = indexingService ?? throw new ArgumentNullException(nameof(indexingService));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        }
+
+        [HttpPost("index")]
+        public async Task<IActionResult> StartIndexing()
+        {
+            try
+            {
+                await _indexingService.StartIndexingAsync();
+                return Ok("Indexing started");
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while starting indexing: {ex.Message}");
+            }
         }
 
         [HttpGet("music")]
-        public ActionResult<List<MediaFile>> GetAllMediaFiles()
+        public async Task<ActionResult<List<MediaFile>>> GetAllMediaFiles()
         {
-            return _mediaService.GetMediaFiles();
+            try
+            {
+                return await _mediaService.GetMediaFilesAsync(_dbContext);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving media files: {ex.Message}");
+            }
         }
 
         [HttpGet("music/artist/{artist}")]
-        public ActionResult<List<MediaFile>> GetMediaFilesByArtist(string artist)
+        public async Task<ActionResult<List<MediaFile>>> GetMediaFilesByArtist(string artist)
         {
-            return _mediaService.GetMediaFilesByArtist(artist);
+            try
+            {
+                return await _mediaService.GetMediaFilesByArtistAsync(_dbContext, artist);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving media files by artist: {ex.Message}");
+            }
         }
 
         [HttpGet("music/album/{album}")]
-        public ActionResult<List<MediaFile>> GetMediaFilesByAlbum(string album)
+        public async Task<ActionResult<List<MediaFile>>> GetMediaFilesByAlbum(string album)
         {
-            return _mediaService.GetMediaFilesByAlbum(album);
+            try
+            {
+                return await _mediaService.GetMediaFilesByAlbumAsync(_dbContext, album);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving media files by album: {ex.Message}");
+            }
         }
 
         [HttpGet("music/play/{title}")]
-        public IActionResult PlayMediaFile(string title)
+        public async Task<IActionResult> PlayMediaFile(string title)
         {
-            var mediaFile = _mediaService.GetMediaFileByTitle(title);
-            if (mediaFile == null)
+            try
             {
-                return NotFound();
+                var fileStream = await _mediaService.GetMediaFileStreamAsync(_dbContext, title);
+                if (fileStream == null)
+                {
+                    return NotFound();
+                }
+                return File(fileStream, "audio/mpeg");
             }
-
-            var fileStream = new FileStream(mediaFile.Path, FileMode.Open, FileAccess.Read);
-            return new FileStreamResult(fileStream, "audio/mpeg");
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while playing media file: {ex.Message}");
+            }
         }
 
         [HttpGet("video")]
-        public ActionResult<List<VideoFile>> GetAllVideoFiles()
+        public async Task<ActionResult<List<VideoFile>>> GetAllVideoFiles()
         {
-            return _mediaService.GetVideoFiles();
+            try
+            {
+                return await _mediaService.GetVideoFilesAsync(_dbContext);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving video files: {ex.Message}");
+            }
         }
 
         [HttpGet("video/director/{director}")]
-        public ActionResult<List<VideoFile>> GetVideoFilesByDirector(string director)
+        public async Task<ActionResult<List<VideoFile>>> GetVideoFilesByDirector(string director)
         {
-            return _mediaService.GetVideoFilesByDirector(director);
+            try
+            {
+                return await _mediaService.GetVideoFilesByDirectorAsync(_dbContext, director);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving video files by director: {ex.Message}");
+            }
         }
 
         [HttpGet("video/genre/{genre}")]
-        public ActionResult<List<VideoFile>> GetVideoFilesByGenre(string genre)
+        public async Task<ActionResult<List<VideoFile>>> GetVideoFilesByGenre(string genre)
         {
-            return _mediaService.GetVideoFilesByGenre(genre);
+            try
+            {
+                return await _mediaService.GetVideoFilesByGenreAsync(_dbContext, genre);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving video files by genre: {ex.Message}");
+            }
         }
 
         [HttpGet("video/play/{title}")]
-        public IActionResult PlayVideoFile(string title)
+        public async Task<IActionResult> PlayVideoFile(string title)
         {
-            var videoFile = _mediaService.GetVideoFileByTitle(title);
-            if (videoFile == null)
+            try
             {
-                return NotFound();
+                var fileStream = await _mediaService.GetVideoFileStreamAsync(_dbContext, title);
+                if (fileStream == null)
+                {
+                    return NotFound();
+                }
+                return File(fileStream, "video/mp4");
             }
-
-            var fileStream = new FileStream(videoFile.Path, FileMode.Open, FileAccess.Read);
-            return new FileStreamResult(fileStream, "video/mp4");
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while playing video file: {ex.Message}");
+            }
         }
     }
 }
