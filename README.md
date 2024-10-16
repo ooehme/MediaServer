@@ -17,17 +17,17 @@ curl http://{ServerIP}:{ServerPORT}/api/media/music
 
 Retrieve music files by a specific artist
 ```
-curl http://{ServerIP}:{ServerPORT}/api/media/music/artist/TheBeatles
+curl http://{ServerIP}:{ServerPORT}/api/media/music/artist/The%20Beatles
 ```
 
 Retrieve music files from a specific album
 ```
-curl http://{ServerIP}:{ServerPORT}/api/media/music/album/AbbeyRoad
+curl http://{ServerIP}:{ServerPORT}/api/media/music/album/Abbey%20Road
 ```
 
 Play a specific music track
 ```
-curl http://{ServerIP}:{ServerPORT}/api/media/music/play/LetItBe
+curl http://{ServerIP}:{ServerPORT}/api/media/music/play/Let%20It%20Be
 ```
 
 Retrieve all video files
@@ -37,7 +37,7 @@ curl http://{ServerIP}:{ServerPORT}/api/media/video
 
 Retrieve video files by a specific director
 ```
-curl http://{ServerIP}:{ServerPORT}/api/media/video/director/ChristopherNolan
+curl http://{ServerIP}:{ServerPORT}/api/media/video/director/Christopher%20Nolan
 ```
 
 Retrieve video files by a specific genre
