@@ -112,20 +112,20 @@ namespace MediaServer.Services
 
         public async Task<MediaFile> GetMediaFileByTitleAsync(AppDbContext dbContext, string title)
         {
-            return await dbContext.MediaFiles.FirstOrDefaultAsync(f => f.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+            return await dbContext.MediaFiles.FirstOrDefaultAsync(f => EF.Functions.Like(f.Title, $"%{title}%"));
         }
 
         public async Task<List<MediaFile>> GetMediaFilesByArtistAsync(AppDbContext dbContext, string artist)
         {
             return await dbContext.MediaFiles
-                .Where(f => f.Artist.Equals(artist, StringComparison.OrdinalIgnoreCase))
+                .Where(f => EF.Functions.Like(f.Artist, $"%{artist}%"))
                 .ToListAsync();
         }
 
         public async Task<List<MediaFile>> GetMediaFilesByAlbumAsync(AppDbContext dbContext, string album)
         {
             return await dbContext.MediaFiles
-                .Where(f => f.Album.Equals(album, StringComparison.OrdinalIgnoreCase))
+                .Where(f => EF.Functions.Like(f.Album, $"%{album}%"))
                 .ToListAsync();
         }
 
@@ -136,20 +136,20 @@ namespace MediaServer.Services
 
         public async Task<VideoFile> GetVideoFileByTitleAsync(AppDbContext dbContext, string title)
         {
-            return await dbContext.VideoFiles.FirstOrDefaultAsync(f => f.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+            return await dbContext.VideoFiles.FirstOrDefaultAsync(f => EF.Functions.Like(f.Title, $"%{title}%"));
         }
 
         public async Task<List<VideoFile>> GetVideoFilesByDirectorAsync(AppDbContext dbContext, string director)
         {
             return await dbContext.VideoFiles
-                .Where(f => f.Director.Equals(director, StringComparison.OrdinalIgnoreCase))
+                .Where(f => EF.Functions.Like(f.Director, $"%{director}%"))
                 .ToListAsync();
         }
 
         public async Task<List<VideoFile>> GetVideoFilesByGenreAsync(AppDbContext dbContext, string genre)
         {
             return await dbContext.VideoFiles
-                .Where(f => f.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase))
+                .Where(f => EF.Functions.Like(f.Genre, $"%{genre}%"))
                 .ToListAsync();
         }
 

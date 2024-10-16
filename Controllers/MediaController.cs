@@ -6,11 +6,13 @@ using MediaServer.Models;
 using MediaServer.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Cors;
 
 namespace MediaServer.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableCors("AllowSpecificOrigin")]
     public class MediaController : ControllerBase
     {
         private readonly MediaService _mediaService;

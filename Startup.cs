@@ -21,6 +21,16 @@ namespace MediaServer
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin", builder =>
+                {
+                    builder.WithOrigins("http://localhost")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+
             services.AddControllers();
 
             var mediaDirectory = Configuration["MediaSettings:MediaDirectory"];
@@ -55,11 +65,14 @@ namespace MediaServer
 
             app.UseRouting();
 
+            app.UseCors("AllowSpecificOrigin");
+
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapMethods("api/{controller}/{action}", new[] { "OPTIONS" }, context => Task.CompletedTask);
             });
         }
     }
