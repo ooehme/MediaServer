@@ -144,6 +144,20 @@ namespace MediaServer.Controllers
             }
         }
 
+        [HttpGet("video/type/{mediaType}")]
+        public async Task<ActionResult<List<VideoFile>>> GetVideoFilesByMediaType(MediaType mediaType)
+        {
+            try
+            {
+                return await _mediaService.GetVideoFilesByMediaTypeAsync(_dbContext, mediaType);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while retrieving video files by media type: {ex.Message}");
+            }
+        }
+
         [HttpGet("video/play/{title}")]
         public async Task<IActionResult> PlayVideoFile(string title)
         {
@@ -160,6 +174,36 @@ namespace MediaServer.Controllers
             {
                 // Log the exception and return a 500 error
                 return StatusCode(500, $"An error occurred while playing video file: {ex.Message}");
+            }
+        }
+
+        [HttpPut("music/update/{path}")]
+        public async Task<IActionResult> UpdateMediaFile(string path, [FromBody] MediaFile updatedMediaFile)
+        {
+            try
+            {
+                await _mediaService.UpdateMediaFileAsync(_dbContext, path, updatedMediaFile);
+                return Ok("Media file updated successfully");
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while updating media file: {ex.Message}");
+            }
+        }
+
+        [HttpPut("video/update/{path}")]
+        public async Task<IActionResult> UpdateVideoFile(string path, [FromBody] VideoFile updatedVideoFile)
+        {
+            try
+            {
+                await _mediaService.UpdateVideoFileAsync(_dbContext, path, updatedVideoFile);
+                return Ok("Video file updated successfully");
+            }
+            catch (Exception ex)
+            {
+                // Log the exception and return a 500 error
+                return StatusCode(500, $"An error occurred while updating video file: {ex.Message}");
             }
         }
     }

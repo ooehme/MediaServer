@@ -7,5 +7,12 @@ namespace MediaServer.Models
         public required string Director { get; set; }
         public required string Genre { get; set; }
         public required int Year { get; set; }
+        public required MediaType MediaType { get; set; } // Neues Feld
+    }
+
+    public enum MediaType
+    {
+        Movie,
+        Series
     }
 }

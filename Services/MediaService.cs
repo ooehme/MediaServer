@@ -17,11 +17,7 @@ namespace MediaServer.Services
     
         public MediaService(IConfiguration configuration)
         {
-            _mediaDirectory = configuration.GetSection("MediaSettings:MediaDirectory").Value;
-            if (string.IsNullOrEmpty(_mediaDirectory))
-            {
-                throw new InvalidOperationException("Media directory path is not configured.");
-            }
+            _mediaDirectory = configuration.GetSection("MediaSettings:MediaDirectory").Value ?? throw new InvalidOperationException("Media directory path is not configured.");
         }
 
         public async Task IndexMediaFilesAsync(AppDbContext dbContext)
@@ -83,7 +79,8 @@ namespace MediaServer.Services
                         Title = tagFile.Tag.Title ?? Path.GetFileNameWithoutExtension(file),
                         Director = tagFile.Tag.FirstPerformer ?? string.Empty,
                         Genre = tagFile.Tag.FirstGenre ?? string.Empty,
-                        Year = (int)tagFile.Tag.Year
+                        Year = (int)tagFile.Tag.Year,
+                        MediaType = MediaType.Movie // Standardmäßig als Film setzen
                     };
 
                     var existingFile = await dbContext.VideoFiles.FindAsync(file);
@@ -153,12 +150,19 @@ namespace MediaServer.Services
                 .ToListAsync();
         }
 
+        public async Task<List<VideoFile>> GetVideoFilesByMediaTypeAsync(AppDbContext dbContext, MediaType mediaType)
+        {
+            return await dbContext.VideoFiles
+                .Where(f => f.MediaType == mediaType)
+                .ToListAsync();
+        }
+
         public async Task<FileStream> GetMediaFileStreamAsync(AppDbContext dbContext, string title)
         {
             var mediaFile = await GetMediaFileByTitleAsync(dbContext, title);
             if (mediaFile == null)
             {
-                return null;
+                throw new FileNotFoundException($"Media file with title '{title}' not found.");
             }
 
             return new FileStream(mediaFile.Path, FileMode.Open, FileAccess.Read);
@@ -169,10 +173,44 @@ namespace MediaServer.Services
             var videoFile = await GetVideoFileByTitleAsync(dbContext, title);
             if (videoFile == null)
             {
-                return null;
+                throw new FileNotFoundException($"Video file with title '{title}' not found.");
             }
 
             return new FileStream(videoFile.Path, FileMode.Open, FileAccess.Read);
+        }
+
+        public async Task UpdateMediaFileAsync(AppDbContext dbContext, string path, MediaFile updatedMediaFile)
+        {
+            var existingFile = await dbContext.MediaFiles.FindAsync(path);
+            if (existingFile == null)
+            {
+                throw new FileNotFoundException($"Media file with path '{path}' not found.");
+            }
+
+            existingFile.Artist = updatedMediaFile.Artist;
+            existingFile.Album = updatedMediaFile.Album;
+            existingFile.Title = updatedMediaFile.Title;
+            existingFile.Genre = updatedMediaFile.Genre;
+            existingFile.Year = updatedMediaFile.Year;
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task UpdateVideoFileAsync(AppDbContext dbContext, string path, VideoFile updatedVideoFile)
+        {
+            var existingFile = await dbContext.VideoFiles.FindAsync(path);
+            if (existingFile == null)
+            {
+                throw new FileNotFoundException($"Video file with path '{path}' not found.");
+            }
+
+            existingFile.Title = updatedVideoFile.Title;
+            existingFile.Director = updatedVideoFile.Director;
+            existingFile.Genre = updatedVideoFile.Genre;
+            existingFile.Year = updatedVideoFile.Year;
+            existingFile.MediaType = updatedVideoFile.MediaType;
+
+            await dbContext.SaveChangesAsync();
         }
     }
 }
